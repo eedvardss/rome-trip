@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Rome Trip Planner — Sleek CRUD (Realtime)</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<style>
+  /* ——— your styles unchanged ——— */
+  :root{--bg:#f5f7ff;--panelTop:#fff;--panel:#eef2fb;--muted:#5b6478;--text:#1a2333;--text-strong:#0a1120;--thu:#6aa3ff;--fri:#f6b043;--sat:#62d3b1;--sun:#ff6a8a;--stroke:#c8d4eb;--card:rgba(255,255,255,.95);--chip:#e7ecfa;--chip-stroke:#ccd8f0;--chip-text:#1a2333;--shadow:0 10px 24px rgba(15,23,42,.12);--btn-bg:#e4e9f8;--btn-bg-hover:#d7def4;--btn-text:#1a2333;--btn-border:#cdd8ef;--primary-bg:#3a57a9;--primary-bg-hover:#324b94;--primary-border:#3a57a9;--primary-text:#fff;--toolbar-bg:linear-gradient(180deg, rgba(255,255,255,.9), rgba(238,242,251,.9));--more-menu-bg:#f5f7ff;--more-menu-hover:#e6ebf8;--more-menu-text:#1a2333;--search-bg:#fff;--input-bg:#fff;--input-text:#1a2333;--pill-bg:rgba(226,232,246,.9);--pill-text:#1a2333;--legend-bg:rgba(255,255,255,.92);--legend-text:#1a2333;--form-wrap-bg:linear-gradient(180deg, rgba(255,255,255,.95), rgba(240,245,255,.95));--toast-bg:#fff;--toast-text:#1a2333;--popup-bg:#fff;--popup-text:#1a2333;--link:#2f5de3;--icon-muted:#7a8494;--hotel:#ef476f;--hotel-icon-text:#fff;--hotel-glow:rgba(239,71,111,.18)}
+  :root[data-theme="dark"]{--bg:#0b0e14;--panelTop:#0f1420;--panel:#0d1220;--muted:#a7b0c2;--text:#eef2fb;--text-strong:#fff;--thu:#6aa3ff;--fri:#f6b043;--sat:#62d3b1;--sun:#ff6a8a;--stroke:#222b45;--card:rgba(17,24,42,.7);--chip:#12182a;--chip-stroke:#283356;--chip-text:#cfd5e3;--shadow:0 10px 30px rgba(0,0,0,.35);--btn-bg:#12192a;--btn-bg-hover:#16223b;--btn-text:#e2e8f7;--btn-border:#283356;--primary-bg:#3a57a9;--primary-bg-hover:#334a92;--primary-border:#3a57a9;--primary-text:#fff;--toolbar-bg:linear-gradient(180deg, rgba(19,25,42,.8), rgba(13,18,32,.8));--more-menu-bg:#0f1628;--more-menu-hover:#141e35;--more-menu-text:#dfe6f7;--search-bg:#0c1222;--input-bg:#0c1222;--input-text:#e6e9ef;--pill-bg:rgba(13,20,36,.8);--pill-text:#cfd5e3;--legend-bg:rgba(15,20,32,.92);--legend-text:#e8edf8;--form-wrap-bg:linear-gradient(180deg, rgba(9,13,24,.9), rgba(8,12,22,.95));--toast-bg:#121a2d;--toast-text:#e6e9ef;--popup-bg:#0f1422;--popup-text:#e6e9ef;--link:#a8c6ff;--icon-muted:#9aa4b5;--hotel:#f06788;--hotel-icon-text:#0b0e14;--hotel-glow:rgba(240,103,136,.28)}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans","Liberation Sans",Arial,sans-serif}
+  #app{display:grid;grid-template-columns:420px 1fr;height:100%}
+  #sidebar{background:linear-gradient(180deg,var(--panelTop),var(--panel));border-right:1px solid var(--stroke);overflow:auto}
+  #map{width:100%;height:100%}
+  .header{padding:18px 18px 10px;border-bottom:1px solid var(--stroke);position:sticky;top:0;background:linear-gradient(180deg,var(--panelTop),var(--panel));z-index:5}
+  .header h1{font-size:20px;margin:0 0 4px;color:var(--text-strong);letter-spacing:.2px}
+  .sub{margin:0;font-size:12px;color:var(--muted)}
+  .toolbar{padding:10px 16px;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--stroke);position:sticky;top:68px;background:var(--toolbar-bg);backdrop-filter:blur(6px);z-index:4}
+  #btnTheme{margin-left:auto}
+  .btn{cursor:pointer;background:var(--btn-bg);border:1px solid var(--btn-border);color:var(--btn-text);font-size:12px;padding:8px 12px;border-radius:10px;text-decoration:none}
+  .btn:hover{background:var(--btn-bg-hover)}
+  .btn.primary{background:var(--primary-bg);border-color:var(--primary-border);color:var(--primary-text);box-shadow:var(--shadow)}
+  .btn.primary:hover{background:var(--primary-bg-hover)}
+  .btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
+  .more{position:relative}
+  .more-menu{position:absolute;top:36px;left:0;min-width:180px;background:var(--more-menu-bg);border:1px solid var(--chip-stroke);border-radius:10px;display:none;box-shadow:var(--shadow)}
+  .more-menu a,.more-menu label{display:block;padding:8px 10px;font-size:12px;color:var(--more-menu-text);text-decoration:none;cursor:pointer}
+  .more-menu a:hover,.more-menu label:hover{background:var(--more-menu-hover)}
+  .hidden-input{display:none}
+  .search{padding:12px 16px;border-bottom:1px solid var(--stroke)}
+  .search input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--chip-stroke);background:var(--input-bg);color:var(--input-text);outline:none}
+  .filters{padding:12px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .chip{display:inline-flex;align-items:center;gap:8px;background:var(--chip);border:1px solid var(--chip-stroke);padding:8px 12px;border-radius:999px;cursor:pointer;user-select:none;font-size:12px;color:var(--chip-text)}
+  .chip input{accent-color:var(--thu)}
+  .list{padding:6px 12px 120px}
+  .daytitle{margin:18px 6px 6px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .card{position:relative;padding:14px 14px 12px 16px;margin:10px 6px;border-radius:14px;background:var(--card);border:1px solid var(--stroke);box-shadow:var(--shadow)}
+  .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:14px 0 0 14px;background:var(--thu);opacity:.9}
+  .fri.card::before{background:var(--fri)}.sat.card::before{background:var(--sat)}.sun.card::before{background:var(--sun)}
+  .title{font-size:15px;margin:0 0 4px;color:var(--text-strong);font-weight:650}
+  .meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+  .pill{padding:3px 8px;border-radius:7px;background:var(--pill-bg);border:1px solid var(--chip-stroke);font-size:11px;color:var(--pill-text)}
+  .note{font-size:12px;color:var(--muted);margin-bottom:6px}
+  .actions{margin-top:6px;display:flex;gap:8px;flex-wrap:wrap}
+  .card.visited{opacity:.55;transition:opacity .2s ease}
+  .card.visited .title{text-decoration:line-through}
+  .card.route{border-color:var(--primary-border);box-shadow:0 0 0 1px rgba(58,87,169,.35),var(--shadow)}
+  .hotel-card{margin:14px 16px;padding:14px 16px;border-radius:16px;border:1px solid var(--stroke);border-left:5px solid var(--hotel);background:var(--card);box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px}
+  .hotel-card .label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .hotel-card .title{font-size:16px;font-weight:650;color:var(--text-strong);margin:0}
+  .hotel-card .address{font-size:12px;color:var(--muted)}
+  .hotel-card .hotel-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .hotel-card .hotel-status{font-size:11px;color:var(--muted);min-height:14px}
+  .hotel-card.is-start{border-left-color:var(--thu)}
+  .hotel-card.is-end{border-left-color:var(--sun)}
+  .hotel-card.in-route{box-shadow:0 0 0 1px var(--hotel-glow),var(--shadow)}
+  .toggles{display:flex;gap:12px;align-items:center;font-size:12px;color:var(--muted);margin-bottom:6px;flex-wrap:wrap}
+  .toggles label{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+  .toggles input{accent-color:var(--thu)}
+  .route-planner{padding:12px 16px;border-bottom:1px solid var(--stroke);display:grid;gap:8px;background:transparent}
+  .route-planner h2{margin:0;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .route-planner select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--chip-stroke);background:var(--input-bg);color:var(--input-text)}
+  .route-actions{display:flex;gap:8px;flex-wrap:wrap}
+  #routeSummary{font-size:11px;color:var(--muted);min-height:14px}
+  .legend{position:absolute;top:12px;right:12px;z-index:1000;background:var(--legend-bg);color:var(--legend-text);padding:8px 10px;border-radius:10px;border:1px solid var(--stroke);font-size:12px;backdrop-filter:blur(6px)}
+  .legend .item{display:flex;align-items:center;gap:6px;margin:4px 0}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+  .dot.thu{background:var(--thu)}.dot.fri{background:var(--fri)}.dot.sat{background:var(--sat)}.dot.sun{background:var(--sun)}.dot.hotel{background:var(--hotel)}
+  .form-wrap{position:sticky;bottom:0;padding:0;border-top:1px solid var(--stroke);background:var(--form-wrap-bg);display:none}
+  .form-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px}
+  .form-head .label{font-size:13px;color:var(--muted)}
+  .form{padding:0 16px 14px}
+  .grid{display:grid;grid-template-columns:1fr;gap:8px}
+  .form input,.form select,.form textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--chip-stroke);background:var(--input-bg);color:var(--input-text)}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .toast{position:fixed;bottom:12px;right:12px;background:var(--toast-bg);border:1px solid var(--chip-stroke);color:var(--toast-text);padding:10px 12px;border-radius:10px;font-size:12px;display:none}
+  .leaflet-popup-content-wrapper{background:var(--popup-bg);color:var(--popup-text);border:1px solid var(--chip-stroke)}
+  .leaflet-popup-tip{background:var(--popup-bg)}
+  a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
+  .hotel-marker{text-align:center}
+  .hotel-marker .hotel-icon{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--hotel);color:var(--hotel-icon-text);font-size:14px;font-weight:700;border:2px solid rgba(255,255,255,.85);box-shadow:0 4px 12px rgba(0,0,0,.35)}
+  .hotel-marker.start .hotel-icon{box-shadow:0 0 0 3px rgba(106,163,255,.32),0 4px 12px rgba(0,0,0,.35)}
+  .hotel-marker.end .hotel-icon{box-shadow:0 0 0 3px rgba(255,106,138,.35),0 4px 12px rgba(0,0,0,.35)}
+</style>
+<script>
+  (function(){try{const s=localStorage.getItem('rome_theme');if(s==='dark'){document.documentElement.dataset.theme='dark'}else if(s==='light'){document.documentElement.dataset.theme='light'}}catch(e){document.documentElement.dataset.theme='light'}})();
+</script>
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <div class="header">
+      <h1>Rome Trip Planner</h1>
+      <p class="sub">Thu 16 → Mon 20 Oct · Sleek sidebar • CRUD • Maps links · <strong>Realtime</strong></p>
+    </div>
+    <div class="toolbar">
+      <button class="btn primary" id="btnCreate">Create New</button>
+      <div class="more">
+        <button class="btn" id="btnMore">More ▾</button>
+        <div class="more-menu" id="moreMenu">
+          <a id="btnExport">Export JSON</a>
+          <label>Import JSON <input id="fileImport" class="hidden-input" type="file" accept="application/json"></label>
+        </div>
+      </div>
+      <button class="btn" id="btnTheme">Dark theme</button>
+    </div>
+
+    <div class="hotel-card" id="hotelCard">
+      <div class="label">Hotel Base</div>
+      <div class="title">Via Andrea Doria 79</div>
+      <div class="address">Scala B, Int 1 - Trionfale, 00192 Rome</div>
+      <div class="hotel-actions">
+        <button class="btn" id="btnHotelZoom" type="button">View on map</button>
+        <button class="btn" id="btnHotelStart" type="button">Set as start</button>
+        <button class="btn" id="btnHotelEnd" type="button">Set as end</button>
+        <a class="btn" id="btnHotelMaps" href="https://www.google.com/maps/place/Via+Andrea+Doria,+79,+00192+Roma+RM,+Italy" target="_blank" rel="noopener">Open in Maps</a>
+      </div>
+      <div class="hotel-status" id="hotelStatus">Use the buttons to incorporate your hotel into the route.</div>
+    </div>
+
+    <div class="search"><input id="searchBox" placeholder="Search places…" /></div>
+    <div class="filters">
+      <label class="chip"><input type="checkbox" data-day="thu" checked /> Thu eve</label>
+      <label class="chip"><input type="checkbox" data-day="fri" checked /> Fri (Vatican)</label>
+      <label class="chip"><input type="checkbox" data-day="sat" checked /> Sat (Ancient)</label>
+      <label class="chip"><input type="checkbox" data-day="sun" checked /> Sun (Markets/Alt)</label>
+    </div>
+    <div class="route-planner">
+      <h2>Route Planner</h2>
+      <select id="routeStart"><option value="">Select start</option></select>
+      <select id="routeEnd"><option value="">Select end</option></select>
+      <div class="route-actions">
+        <button class="btn primary" id="btnRoute" type="button">Build route</button>
+        <button class="btn" id="btnClearRoute" type="button">Clear route</button>
+      </div>
+      <div id="routeSummary">Select start and end, then build route.</div>
+    </div>
+    <div class="list" id="list"></div>
+
+    <div class="form-wrap" id="formWrap">
+      <div class="form-head">
+        <div class="label" id="formLabel">Create a new place</div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn" id="btnCancel">Cancel</button>
+          <button class="btn primary" id="btnSubmitTop">Save</button>
+        </div>
+      </div>
+      <form class="form" id="form">
+        <div class="grid">
+          <div class="two">
+            <input name="title" placeholder="Title" required />
+            <select name="day">
+              <option value="thu">Thu</option><option value="fri">Fri</option><option value="sat">Sat</option><option value="sun">Sun</option>
+            </select>
+          </div>
+          <input name="url" placeholder="Info URL (optional)" />
+          <input name="tags" placeholder="Tags (comma separated)" />
+          <textarea name="note" placeholder="Note" rows="2"></textarea>
+          <div class="two">
+            <input name="lat" placeholder="Latitude" required />
+            <input name="lng" placeholder="Longitude" required />
+          </div>
+          <div class="actions" style="padding-bottom:10px;">
+            <button class="btn primary" type="submit">Save place</button>
+            <button class="btn" type="button" id="btnClear">Clear form</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </aside>
+  <div id="map"></div>
+</div>
+
+<div class="legend">
+  <div class="item"><span class="dot hotel"></span> Hotel base</div>
+  <div class="item"><span class="dot thu"></span> Thu evening</div>
+  <div class="item"><span class="dot fri"></span> Fri (Vatican day)</div>
+  <div class="item"><span class="dot sat"></span> Sat (Ancient Rome)</div>
+  <div class="item"><span class="dot sun"></span> Sun (Markets & others)</div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<!-- Supabase (ESM via CDN) -->
+<script type="module">
+/*** 🔧 CONFIG — replace with your project values ***/
+const SUPABASE_URL = "https://YOURPROJECT.supabase.co";
+const SUPABASE_ANON_KEY = "YOUR_PUBLIC_ANON_KEY";
+/*** seed defaults on first run if table is empty ***/
+const SEED_ON_EMPTY = true;
+
+/*** import supabase client ***/
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+/*** app state and helpers (kept from your original) ***/
+const THEME_KEY = 'rome_theme';
+const btnTheme = document.getElementById('btnTheme');
+const routeStart = document.getElementById('routeStart');
+const routeEnd = document.getElementById('routeEnd');
+const btnRoute = document.getElementById('btnRoute');
+const btnClearRoute = document.getElementById('btnClearRoute');
+const routeSummary = document.getElementById('routeSummary');
+const ROUTE_SUMMARY_DEFAULT = routeSummary ? routeSummary.textContent : '';
+const btnHotelStart = document.getElementById('btnHotelStart');
+const btnHotelEnd = document.getElementById('btnHotelEnd');
+const btnHotelZoom = document.getElementById('btnHotelZoom');
+const hotelStatus = document.getElementById('hotelStatus');
+const hotelCard = document.getElementById('hotelCard');
+let mapInstance = null;
+let baseLayer = null;
+let routeLoading = false;
+
+function uid(){ return Math.random().toString(36).slice(2,10) }
+function getCss(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+const OSRM_BASE_URL = 'https://router.project-osrm.org/route/v1/foot/';
+
+const HOTEL = { id:'hotel-base', title:'Hotel Base', address:'Via Andrea Doria 79, Scala B, Int 1, Trionfale, 00192 Rome', lat:41.91029, lng:12.45436 };
+let hotelMarker = null;
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/*** DEFAULT PLACES (same as your original) ***/
+const DEFAULT_PLACES = [
+  {title:"Mercato Trionfale", url:"https://www.google.com/maps/place/Mercato+Trionfale", tags:["market"], day:"fri", note:"Food market near Vatican", lat:41.9079, lng:12.4507},
+  {title:"Testaccio Market", url:"https://www.google.com/maps/place/Testaccio+Market", tags:["market"], day:"sun", lat:41.8766, lng:12.4753},
+  {title:"Mercato Centrale", url:"https://www.google.com/maps/place/Mercato+Centrale", tags:["market"], day:"sun", lat:41.9026, lng:12.4996},
+  {title:"Galleria Spada", url:"https://www.google.com/maps/place/Galleria+Spada", tags:["museum"], day:"sun", lat:41.8948, lng:12.4737},
+  /* … (keep the rest of your list unchanged) … */
+  {title:"Colosseum", url:"https://www.google.com/maps/place/Colosseum", tags:["archaeology"], day:"sat", lat:41.8902, lng:12.4922}
+];
+
+/*** ————— THEME / MAP ————— ***/
+function createBaseLayer(theme){
+  const isDark = theme === 'dark';
+  const url = isDark
+    ? 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  return L.tileLayer(url,{maxZoom:20,subdomains:'abcd',attribution:'&copy; OpenStreetMap & CARTO'});
+}
+function refreshBaseLayer(theme){ if(!mapInstance)return; if(baseLayer) mapInstance.removeLayer(baseLayer); baseLayer=createBaseLayer(theme); baseLayer.addTo(mapInstance); }
+function refreshHotelMarker(){
+  if(!mapInstance) return;
+  const classes=['hotel-marker'];
+  if(routeStart?.value===HOTEL.id) classes.push('start');
+  if(routeEnd?.value===HOTEL.id) classes.push('end');
+  const icon=L.divIcon({className:classes.join(' '),html:'<span class="hotel-icon">H</span>',iconSize:[26,26],iconAnchor:[13,13],popupAnchor:[0,-14]});
+  if(hotelMarker){ hotelMarker.setIcon(icon); }
+  else{
+    hotelMarker=L.marker([HOTEL.lat,HOTEL.lng],{icon}).addTo(mapInstance);
+    hotelMarker.bindPopup(`<div style="min-width:220px"><div style="font-weight:700;margin-bottom:4px">${HOTEL.title}</div><div style="font-size:12px;margin-bottom:6px">${HOTEL.address}</div><a href="https://www.google.com/maps?q=${HOTEL.lat},${HOTEL.lng}" target="_blank" rel="noopener">Open in Maps</a></div>`);
+  }
+  hotelMarker.setZIndexOffset(500);
+}
+function applyTheme(theme,persist=true){
+  const t=theme==='dark'?'dark':'light';
+  document.documentElement.dataset.theme=t;
+  if(persist) try{localStorage.setItem(THEME_KEY,t)}catch(e){}
+  if(btnTheme){ const isDark=t==='dark'; btnTheme.textContent=isDark?'Light theme':'Dark theme'; btnTheme.setAttribute('aria-pressed',isDark?'true':'false'); }
+  refreshBaseLayer(t);
+  refreshHotelMarker();
+}
+
+/*** ————— STATE ————— ***/
+const state = {
+  places: [],           // source of truth = Supabase
+  editingId: null,
+  routeSelection: new Set(),
+  routeLine: null,
+  currentRoute: null
+};
+
+/*** ————— SUPABASE IO ————— ***/
+function normalizeRow(r){
+  return {
+    id: r.id,
+    title: r.title,
+    day: r.day,
+    url: r.url || '',
+    tags: Array.isArray(r.tags) ? r.tags : (r.tags ? r.tags : []),
+    note: r.note || '',
+    lat: Number(r.lat),
+    lng: Number(r.lng),
+    visited: !!r.visited
+  };
+}
+
+async function loadFromDB(){
+  const { data, error } = await supabase.from('places').select('*').order('created_at', { ascending: true });
+  if(error) throw error;
+  return (data||[]).map(normalizeRow);
+}
+
+async function seedIfEmpty(){
+  const { count, error } = await supabase.from('places').select('*', { count: 'exact', head: true });
+  if(error) throw error;
+  if(count===0 && SEED_ON_EMPTY){
+    const rows = DEFAULT_PLACES.map(p => ({
+      id: uid(),
+      title: p.title,
+      day: p.day,
+      url: p.url || null,
+      tags: p.tags || [],
+      note: p.note || null,
+      lat: p.lat,
+      lng: p.lng,
+      visited: false
+    }));
+    const { error: insErr } = await supabase.from('places').insert(rows);
+    if(insErr) throw insErr;
+  }
+}
+
+async function insertPlace(p){
+  const row = { id: p.id, title: p.title, day: p.day, url: p.url||null, tags: p.tags||[], note: p.note||null, lat: p.lat, lng: p.lng, visited: !!p.visited, updated_at: new Date().toISOString() };
+  const { error } = await supabase.from('places').insert(row);
+  if(error) throw error;
+}
+async function updatePlace(p){
+  const patch = { title:p.title, day:p.day, url:p.url||null, tags:p.tags||[], note:p.note||null, lat:p.lat, lng:p.lng, visited:!!p.visited, updated_at:new Date().toISOString() };
+  const { error } = await supabase.from('places').update(patch).eq('id', p.id);
+  if(error) throw error;
+}
+async function deletePlace(id){
+  const { error } = await supabase.from('places').delete().eq('id', id);
+  if(error) throw error;
+}
+async function setVisitedDB(id, value){
+  const { error } = await supabase.from('places').update({ visited: !!value, updated_at: new Date().toISOString() }).eq('id', id);
+  if(error) throw error;
+}
+
+/*** realtime subscription ***/
+function applyChange(payload){
+  const { eventType, new: rowNew, old: rowOld } = payload;
+  if(eventType==='INSERT'){
+    const p = normalizeRow(rowNew);
+    if(!state.places.find(x=>x.id===p.id)) state.places.push(p);
+  }else if(eventType==='UPDATE'){
+    const p = normalizeRow(rowNew);
+    const i = state.places.findIndex(x=>x.id===p.id);
+    if(i>=0) state.places[i]=p; else state.places.push(p);
+  }else if(eventType==='DELETE'){
+    const id = rowOld?.id;
+    state.places = state.places.filter(x=>x.id!==id);
+    state.routeSelection.delete(id);
+    if(routeStart?.value===id) routeStart.value='';
+    if(routeEnd?.value===id) routeEnd.value='';
+  }
+  refreshAfterDataChange();
+  if(state.routeLine) rebuildRouteIfActive();
+}
+
+supabase.channel('realtime:places')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'places' }, applyChange)
+  .subscribe();
+
+/*** ————— ROUTE / MAP ————— ***/
+function setRouteLoading(isLoading,message=null){
+  routeLoading = isLoading;
+  if(btnRoute) btnRoute.disabled=isLoading;
+  if(btnClearRoute) btnClearRoute.disabled=isLoading;
+  if(btnHotelStart) btnHotelStart.disabled=isLoading;
+  if(btnHotelEnd) btnHotelEnd.disabled=isLoading;
+  if(message && routeSummary) routeSummary.textContent = message;
+  updateHotelCardState();
+}
+function updateRouteOptions(){
+  if(!routeStart || !routeEnd) return;
+  const startValue = routeStart.value;
+  const endValue = routeEnd.value;
+  const fill=(select, placeholder, keep)=>{
+    select.innerHTML='';
+    const opt=document.createElement('option'); opt.value=''; opt.textContent=placeholder; select.appendChild(opt);
+    const all=[HOTEL, ...state.places];
+    for(const p of all){
+      const o=document.createElement('option');
+      o.value=p.id; o.textContent = p.id===HOTEL.id ? `${p.title} (hotel)` : p.title;
+      select.appendChild(o);
+    }
+    let desired = keep || '';
+    if(!desired && select===routeStart) desired = HOTEL.id;
+    select.value = desired;
+    if(desired && select.value!==desired){ select.value=''; }
+  };
+  fill(routeStart,'Select start',startValue);
+  fill(routeEnd,'Select end',endValue);
+}
+function findPlace(id){ if(!id) return null; if(id===HOTEL.id) return HOTEL; return state.places.find(p=>p.id===id)||null; }
+function refreshAfterDataChange(){
+  updateRouteOptions();
+  const searchInput = document.getElementById('searchBox');
+  const query = (searchInput?.value||'').toLowerCase().trim();
+  const visible = currentVisibleDays();
+  refreshMarkers(visible);
+  renderList(visible, query);
+  updateHotelCardState();
+}
+function setVisited(id,value){ const p=findPlace(id); if(!p) return; if(p.visited===value) return; setVisitedDB(id,value).catch(err=>{console.error(err);toast('Failed to update visited');}); }
+function setRouteSelection(id,value){ if(value){ if(findPlace(id)) state.routeSelection.add(id) } else { state.routeSelection.delete(id) } if(!state.routeLine) refreshAfterDataChange(); else rebuildRouteIfActive(); }
+function updateHotelCardState(){
+  const isStart = routeStart?.value===HOTEL.id;
+  const isEnd = routeEnd?.value===HOTEL.id;
+  const inRoute = !!(state.routeLine && state.currentRoute && state.currentRoute.has(HOTEL.id));
+  hotelCard?.classList.toggle('is-start',!!isStart);
+  hotelCard?.classList.toggle('is-end',!!isEnd);
+  hotelCard?.classList.toggle('in-route',inRoute);
+  if(hotelStatus){
+    let msg='Use the buttons to incorporate your hotel into the route.';
+    if(isStart && isEnd) msg='Hotel set as both start and end.';
+    else if(isStart) msg='Hotel is the current start point.';
+    else if(isEnd) msg='Hotel is the current end point.';
+    else if(inRoute) msg='Hotel included in the current route.';
+    else if(routeLoading) msg='Preparing walking directions...';
+    hotelStatus.textContent = msg;
+  }
+  refreshHotelMarker();
+}
+function clearRouteLine({clearSelection=false}={}){
+  if(mapInstance && state.routeLine){ mapInstance.removeLayer(state.routeLine); }
+  state.routeLine=null; state.currentRoute=null;
+  if(routeSummary) routeSummary.textContent = ROUTE_SUMMARY_DEFAULT;
+  if(clearSelection){ state.routeSelection.clear(); if(routeStart) routeStart.value=''; if(routeEnd) routeEnd.value=''; }
+  refreshAfterDataChange();
+}
+function drawRoute(coords){
+  if(!mapInstance || coords.length<2) return;
+  if(state.routeLine) mapInstance.removeLayer(state.routeLine);
+  state.routeLine=L.polyline(coords,{color:getCss('--sun')||'#ff6a8a',weight:4,opacity:.9}).addTo(mapInstance);
+  mapInstance.fitBounds(state.routeLine.getBounds().pad(0.12));
+}
+function distanceKm(a,b){ const R=6371,dLat=(b.lat-a.lat)*Math.PI/180,dLng=(b.lng-a.lng)*Math.PI/180,lat1=a.lat*Math.PI/180,lat2=b.lat*Math.PI/180,sinLat=Math.sin(dLat/2),sinLng=Math.sin(dLng/2),h=sinLat*sinLat+Math.cos(lat1)*Math.cos(lat2)*sinLng*sinLng; return 2*R*Math.atan2(Math.sqrt(h),Math.sqrt(1-h)); }
+function computeRoute(startId,endId,intermediateIds){
+  const route=[startId]; let currentId=startId; const remaining=new Set(intermediateIds);
+  while(remaining.size){ const currentPlace=findPlace(currentId); if(!currentPlace) break; let closestId=null,closest=Infinity;
+    for(const id of remaining){ const c=findPlace(id); if(!c) continue; const d=distanceKm(currentPlace,c); if(d<closest){closest=d;closestId=id} }
+    if(!closestId) break; route.push(closestId); remaining.delete(closestId); currentId=closestId;
+  }
+  if(route[route.length-1]!==endId) route.push(endId);
+  return route;
+}
+function totalDistance(coords){ let total=0; for(let i=1;i<coords.length;i++){ const a={lat:coords[i-1][0],lng:coords[i-1][1]}, b={lat:coords[i][0],lng:coords[i][1]}; total+=distanceKm(a,b) } return total; }
+async function requestWalkingGeometry(coords){
+  const coordString = coords.map(([lat,lng])=>`${lng.toFixed(6)},${lat.toFixed(6)}`).join(';');
+  const url = `${OSRM_BASE_URL}${coordString}?overview=full&geometries=geojson&steps=false&annotations=distance`;
+  const res = await fetch(url,{headers:{'Accept':'application/json'}});
+  if(!res.ok) throw new Error(`OSRM ${res.status}`);
+  const data = await res.json();
+  if(!data || data.code!=='Ok' || !data.routes?.length) throw new Error('No route');
+  const route=data.routes[0];
+  const geometry = route.geometry?.coordinates?.map(([lng,lat])=>[lat,lng]);
+  if(!geometry || geometry.length<2) throw new Error('Bad geometry');
+  return { geometry, distanceMeters: typeof route.distance==='number'?route.distance:totalDistance(geometry)*1000 };
+}
+function fallbackGeometry(coords){ return { geometry: coords, distanceMeters: totalDistance(coords)*1000, fallback: true }; }
+async function buildRoute({quiet=false}={}){
+  const startId=routeStart?.value, endId=routeEnd?.value;
+  if(!startId || !endId){ if(!quiet) toast('Select both start and end points'); clearRouteLine(); return false; }
+  const startPlace=findPlace(startId), endPlace=findPlace(endId); if(!startPlace || !endPlace){ if(!quiet) toast('Start or end invalid'); clearRouteLine(); return false; }
+  const intermediates=Array.from(state.routeSelection).filter(id=>id!==startId && id!==endId && findPlace(id));
+  const order = computeRoute(startId, endId, intermediates);
+  const coords = order.map(id=>{const p=findPlace(id); return p?[p.lat,p.lng]:null}).filter(Boolean);
+  if(coords.length<2){ if(!quiet) toast('Need at least two valid stops'); clearRouteLine(); return false; }
+  setRouteLoading(true,'Building walking route...');
+  let routeData;
+  try{ routeData = await requestWalkingGeometry(coords); }
+  catch(err){ console.warn('OSRM failed',err); if(!quiet) toast('Could not fetch walking route; showing straight lines'); routeData=fallbackGeometry(coords); }
+  finally{ setRouteLoading(false); }
+  drawRoute(routeData.geometry); state.currentRoute=new Set(order);
+  const km = routeData.distanceMeters/1000;
+  if(routeSummary){ const viaCount=Math.max(order.length-2,0); routeSummary.textContent = `${order.length} stops (${viaCount} via) - ${km.toFixed(1)} km${routeData.fallback?' (approx.)':''}`; }
+  refreshAfterDataChange();
+  return true;
+}
+function rebuildRouteIfActive(){ if(!state.routeLine) return; buildRoute({quiet:true}).catch(()=>clearRouteLine()); }
+
+/*** ————— MAP / MARKERS / LIST ————— ***/
+const map = L.map('map',{scrollWheelZoom:true}).setView([41.9028,12.4964],13);
+mapInstance=map;
+const initialTheme = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+applyTheme(initialTheme,false);
+refreshHotelMarker();
+const markersById = new Map();
+const DAY_COLORS={thu:getCss('--thu'),fri:getCss('--fri'),sat:getCss('--sat'),sun:getCss('--sun')};
+function dayColor(day){ return DAY_COLORS[day]||DAY_COLORS['thu']; }
+function markerFor(p){
+  const visited=!!p.visited;
+  const isStart=routeStart?.value===p.id;
+  const isEnd=routeEnd?.value===p.id;
+  const inRoute=(state.currentRoute && state.currentRoute.has(p.id)) || state.routeSelection.has(p.id) || isStart || isEnd;
+  const color=dayColor(p.day);
+  const m=L.circleMarker([p.lat,p.lng],{radius:inRoute?8:7,color,fillColor:color,fillOpacity:visited?.35:.9,opacity:visited?.7:1,weight:inRoute?3:2,dashArray:visited?'3 4':null})
+    .bindPopup(`<div style="min-width:240px"><div style="font-weight:700;margin-bottom:4px">${p.title}</div><div style="font-size:12px;margin-bottom:6px">Day: <span style="color:${dayColor(p.day)};font-weight:700">${p.day.toUpperCase()}</span></div><div style="font-size:12px;margin-bottom:6px">Visited: <span style="font-weight:600">${visited?'Yes':'No'}</span></div>${p.note?`<div style="font-size:12px;margin-bottom:6px">${p.note}</div>`:''}<div style="display:flex; gap:8px; flex-wrap:wrap"><a href="https://www.google.com/maps?q=${p.lat},${p.lng}(${encodeURIComponent(p.title)})" target="_blank" rel="noopener">Open in Maps</a></div><div style="font-size:11px;color:var(--icon-muted);margin-top:6px">${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}</div></div>`);
+  m.addTo(map);
+  return m;
+}
+function refreshMarkers(visibleDays=null){
+  for(const m of markersById.values()) map.removeLayer(m);
+  markersById.clear();
+  for(const p of state.places){
+    if(visibleDays && !visibleDays.has(p.day)) continue;
+    const m=markerFor(p); markersById.set(p.id,m);
+  }
+  const all=Array.from(markersById.values()); const extras=hotelMarker?[hotelMarker]:[];
+  if((all.length||extras.length) && !state.routeLine){ const group=L.featureGroup([...all,...extras]); map.fitBounds(group.getBounds().pad(0.15)); }
+}
+
+/*** ————— UI (list, filters, search, form) ————— ***/
+const listEl=document.getElementById('list'); const searchBox=document.getElementById('searchBox');
+function renderList(visibleDays=null,q=""){
+  listEl.innerHTML='';
+  const groups={thu:[],fri:[],sat:[],sun:[]};
+  for(const p of state.places){
+    if(visibleDays && !visibleDays.has(p.day)) continue;
+    if(q && !p.title.toLowerCase().includes(q)) continue;
+    groups[p.day].push(p);
+  }
+  const titles={thu:"Thursday evening (arrival stroll)",fri:"Friday — Vatican & nearby",sat:"Saturday — Ancient Rome focus",sun:"Sunday — Markets & alternatives"};
+  for(const day of ['thu','fri','sat','sun']){
+    const arr=groups[day]; if(!arr.length) continue;
+    const h=document.createElement('div'); h.className='daytitle'; h.textContent=titles[day]; listEl.appendChild(h);
+    for(const p of arr){
+      const card=document.createElement('div'); card.className='card '+day; card.dataset.day=day;
+      if(p.visited) card.classList.add('visited');
+      const isStart=routeStart?.value===p.id, isEnd=routeEnd?.value===p.id;
+      const isInRoute=state.routeSelection.has(p.id)||(state.currentRoute && state.currentRoute.has(p.id))||isStart||isEnd;
+      if(isInRoute) card.classList.add('route');
+      const t=document.createElement('div'); t.className='title'; t.textContent=p.title;
+      const meta=document.createElement('div'); meta.className='meta';
+      const pillDay=document.createElement('span'); pillDay.className='pill'; pillDay.textContent=day.toUpperCase();
+      const pillTag=document.createElement('span'); pillTag.className='pill'; pillTag.textContent=(p.tags||[]).join(', ')||'-';
+      meta.append(pillDay,pillTag);
+      const toggles=document.createElement('div'); toggles.className='toggles';
+      const visitedLabel=document.createElement('label');
+      const visitedInput=document.createElement('input'); visitedInput.type='checkbox'; visitedInput.checked=!!p.visited;
+      visitedInput.addEventListener('change',()=> setVisited(p.id, visitedInput.checked));
+      visitedLabel.append(visitedInput, document.createTextNode('Visited'));
+      const routeLabel=document.createElement('label');
+      const routeInput=document.createElement('input'); routeInput.type='checkbox'; routeInput.checked=state.routeSelection.has(p.id);
+      routeInput.addEventListener('change',()=> setRouteSelection(p.id, routeInput.checked));
+      routeLabel.append(routeInput, document.createTextNode('Include in route'));
+      toggles.append(visitedLabel, routeLabel);
+      const note=document.createElement('div'); note.className='note'; note.textContent=p.note||' ';
+      const acts=document.createElement('div'); acts.className='actions';
+      const btnZoom=document.createElement('button'); btnZoom.className='btn'; btnZoom.textContent='Zoom'; btnZoom.onclick=()=>{ const m=markersById.get(p.id); if(m){ map.setView(m.getLatLng(),16); m.openPopup(); } };
+      const aMaps=document.createElement('a'); aMaps.className='btn'; aMaps.href=`https://www.google.com/maps?q=${p.lat},${p.lng}(${encodeURIComponent(p.title)})`; aMaps.target='_blank'; aMaps.rel='noopener'; aMaps.textContent='Open in Maps';
+      const btnEdit=document.createElement('button'); btnEdit.className='btn'; btnEdit.textContent='Edit'; btnEdit.onclick=()=>openForm('edit',p);
+      const btnDel=document.createElement('button'); btnDel.className='btn'; btnDel.textContent='Delete'; btnDel.onclick=()=>delPlace(p.id);
+      acts.append(btnZoom,aMaps,btnEdit,btnDel);
+      card.append(t,meta,toggles,note,acts);
+      listEl.appendChild(card);
+    }
+  }
+}
+function toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.style.display='block'; setTimeout(()=>{ el.style.display='none' },1500) }
+function currentVisibleDays(){ const checks=Array.from(document.querySelectorAll('.chip input')); return new Set(checks.filter(c=>c.checked).map(c=>c.dataset.day)); }
+document.querySelectorAll('.chip input').forEach(i=>{ i.addEventListener('change',()=>{ const v=currentVisibleDays(); refreshMarkers(v); renderList(v, searchBox.value.toLowerCase().trim()); }); });
+searchBox.addEventListener('input',(e)=>{ const v=currentVisibleDays(); renderList(v, e.target.value.toLowerCase().trim()); });
+
+/*** form ***/
+const formWrap=document.getElementById('formWrap'); const form=document.getElementById('form');
+const btnCreate=document.getElementById('btnCreate'); const btnCancel=document.getElementById('btnCancel'); const btnClear=document.getElementById('btnClear'); const btnSubmitTop=document.getElementById('btnSubmitTop'); const formLabel=document.getElementById('formLabel');
+function openForm(mode='create',p=null){
+  formWrap.style.display='block';
+  if(mode==='create'){ state.editingId=null; form.reset(); formLabel.textContent='Create a new place'; }
+  else{ state.editingId=p.id; form.title.value=p.title||''; form.day.value=p.day||'thu'; form.url.value=p.url||''; form.tags.value=(p.tags||[]).join(', '); form.note.value=p.note||''; form.lat.value=p.lat||''; form.lng.value=p.lng||''; formLabel.textContent='Edit place'; }
+  document.getElementById('sidebar').scrollTo({ top: document.getElementById('sidebar').scrollHeight, behavior:'smooth' });
+}
+btnCreate.onclick=()=>openForm('create');
+btnCancel.onclick=()=>{ formWrap.style.display='none' };
+btnClear.onclick=()=>{ state.editingId=null; form.reset(); toast('Form cleared') };
+btnSubmitTop.onclick=()=>{ form.requestSubmit(); };
+
+form.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const p={ id: state.editingId || uid(), title: form.title.value.trim(), day: form.day.value, url: form.url.value.trim(), tags: form.tags.value.split(',').map(s=>s.trim()).filter(Boolean), note: form.note.value.trim(), lat: parseFloat(form.lat.value), lng: parseFloat(form.lng.value) };
+  if(!p.title || isNaN(p.lat) || isNaN(p.lng)){ toast('Please fill Title, Lat, Lng'); return; }
+  try{
+    if(state.editingId){ const existing = state.places.find(x=>x.id===p.id); p.visited = existing ? !!existing.visited : false; await updatePlace(p); toast('Place updated'); }
+    else{ p.visited=false; await insertPlace(p); toast('Place added'); }
+    state.editingId=null; form.reset(); formWrap.style.display='none';
+  }catch(err){ console.error(err); toast('Save failed'); }
+});
+
+async function delPlace(id){
+  if(!confirm('Delete this place?')) return;
+  try{ await deletePlace(id); toast('Place deleted'); }catch(err){ console.error(err); toast('Delete failed'); }
+}
+
+/*** more menu + export/import (client-side only) ***/
+const btnMore=document.getElementById('btnMore'); const moreMenu=document.getElementById('moreMenu');
+btnMore.addEventListener('click',()=>{ const open=moreMenu.style.display==='block'; moreMenu.style.display=open?'none':'block'; });
+document.addEventListener('click',(e)=>{ if(!moreMenu.contains(e.target) && e.target!==btnMore) moreMenu.style.display='none' });
+document.getElementById('btnExport').onclick=()=>{ const data=JSON.stringify(state.places,null,2); const blob=new Blob([data],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='rome_places.json'; a.click(); URL.revokeObjectURL(url); };
+document.getElementById('fileImport').addEventListener('change', async (e)=>{
+  const file=e.target.files[0]; if(!file) return; const text=await file.text();
+  try{
+    const arr=JSON.parse(text); if(!Array.isArray(arr)) throw new Error('Invalid JSON');
+    // upsert into DB
+    const rows = arr.map(x=>({ id: x.id || uid(), title:x.title, day:x.day||'thu', url:x.url||null, tags:x.tags||[], note:x.note||null, lat:Number(x.lat), lng:Number(x.lng), visited: !!x.visited }));
+    // Use upsert to avoid duplicates (requires unique primary key)
+    const { error } = await supabase.from('places').upsert(rows);
+    if(error) throw error;
+    toast('Imported places');
+  }catch(err){ alert('Import failed: '+err.message) }
+  finally{ e.target.value='' }
+});
+
+/*** theme & hotel ui events ***/
+if(btnTheme){ btnTheme.addEventListener('click',()=>{ const next=document.documentElement.dataset.theme==='dark'?'light':'dark'; applyTheme(next); }); }
+const btnHotelStartEl=document.getElementById('btnHotelStart');
+const btnHotelEndEl=document.getElementById('btnHotelEnd');
+const btnHotelZoomEl=document.getElementById('btnHotelZoom');
+if(btnHotelStartEl) btnHotelStartEl.addEventListener('click',()=>{ if(routeStart?.value===HOTEL.id){ toast('Hotel already set as start.'); updateHotelCardState(); return; } routeStart.value=HOTEL.id; routeStart.dispatchEvent(new Event('change')); toast('Hotel set as start point.'); });
+if(btnHotelEndEl) btnHotelEndEl.addEventListener('click',()=>{ if(routeEnd?.value===HOTEL.id){ toast('Hotel already set as end.'); updateHotelCardState(); return; } routeEnd.value=HOTEL.id; routeEnd.dispatchEvent(new Event('change')); toast('Hotel set as end point.'); });
+if(btnHotelZoomEl) btnHotelZoomEl.addEventListener('click',()=>{ if(!mapInstance) return; mapInstance.setView([HOTEL.lat,HOTEL.lng],16); if(hotelMarker) hotelMarker.openPopup(); toast('Centered on hotel.'); });
+
+/*** route buttons ***/
+if(btnRoute) btnRoute.addEventListener('click',()=>{ buildRoute().catch(err=>{ console.error('Route failed',err); toast('Route build failed'); }) });
+if(btnClearRoute) btnClearRoute.addEventListener('click',()=>{ clearRouteLine({clearSelection:true}); });
+if(routeStart) routeStart.addEventListener('change',()=>{ updateHotelCardState(); if(state.routeLine) rebuildRouteIfActive(); else refreshAfterDataChange(); });
+if(routeEnd) routeEnd.addEventListener('change',()=>{ updateHotelCardState(); if(state.routeLine) rebuildRouteIfActive(); else refreshAfterDataChange(); });
+
+/*** INITIAL BOOT ***/
+(async function boot(){
+  try{
+    await seedIfEmpty();
+    state.places = await loadFromDB();
+    // map and list
+    refreshBaseLayer(initialTheme); refreshHotelMarker(); refreshAfterDataChange();
+  }catch(err){
+    console.error(err);
+    toast('Failed to load data');
+  }
+})();
+</script>
+</body>
+</html>
