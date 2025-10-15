@@ -3,89 +3,128 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>Trip Planner — Mobile</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<title>Roma</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous"/>
 <style>
   :root{
-    --bg:#0b0e14; --panel:#101726; --text:#e8ecf8; --muted:#9aa5b5; --stroke:#182339;
+    /* Light theme (default) */
+    --bg:#f6f8ff; --panel:#ffffff; --text:#0b1220; --muted:#667084; --stroke:#e6eaf5;
     --accent:#3a57a9; --good:#62d3b1; --warn:#ff6a8a;
     --thu:#6aa3ff; --fri:#f6b043; --sat:#62d3b1; --sun:#ff6a8a; --hotel:#ef476f;
+    --card:#ffffff; --chip:#eef3ff; --shadow:0 10px 24px rgba(15,23,42,.10);
+  }
+  :root[data-theme="dark"]{
+    --bg:#0b0e14; --panel:#101726; --text:#e8ecf8; --muted:#9aa5b5; --stroke:#182339;
     --card:#0f1524; --chip:#121b2e; --shadow:0 12px 30px rgba(0,0,0,.4);
   }
   *{box-sizing:border-box}
   html,body{height:100%;margin:0;background:var(--bg);color:var(--text);
     font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-  #app{display:grid;grid-template-rows:auto 1fr auto;min-height:100vh}
-  header{position:sticky;top:0;z-index:10;background:var(--panel);border-bottom:1px solid var(--stroke);
-    padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+
+  /* ===== Fixed top & bottom bars ===== */
+  header{
+    position:fixed; top:0; left:0; right:0;
+    background:var(--panel); border-bottom:1px solid var(--stroke);
+    padding: max(12px, env(safe-area-inset-top)) 16px 12px;
+    display:flex; align-items:center; justify-content:space-between; gap:8px; z-index:1000;
+  }
   header .brand{font-weight:700}
   header .sub{color:var(--muted);font-size:12px}
 
-  /* Tabs */
-  nav.tabs{position:sticky;bottom:0;z-index:10;background:var(--panel);
-    border-top:1px solid var(--stroke);display:flex}
-  nav.tabs button{flex:1;padding:12px 6px;background:transparent;border:none;color:var(--text);
-    font-size:13px}
-  nav.tabs button[aria-selected="true"]{color:#fff;background:rgba(58,87,169,.15)}
+  nav.tabs{
+    position:fixed; bottom:0; left:0; right:0;
+    background:var(--panel); border-top:1px solid var(--stroke);
+    display:flex; gap:0; z-index:1000;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  nav.tabs button{
+    flex:1; padding:12px 6px; background:transparent; border:none; color:var(--text); font-size:13px;
+  }
+  nav.tabs button[aria-selected="true"]{
+    color:#fff; background:rgba(58,87,169,.15);
+  }
+
+  /* Layout area with top/bottom bars reserved */
+  #app{
+    min-height:100vh;
+    /* Reserve space equal to bars’ heights */
+    padding-top:64px;               /* header height */
+    padding-bottom:64px;            /* tabs height */
+  }
 
   /* Screens */
-  .screen{display:none;height:100%}
+  .screen{display:none; height:100%}
   .screen.active{display:block}
   .pad{padding:12px 14px}
   .row{display:flex;gap:10px;align-items:center}
-  .search input{width:100%;padding:12px;border-radius:12px;border:1px solid var(--stroke);background:#0c1322;color:#e8ecf8}
+  .search input{width:100%;padding:12px;border-radius:12px;border:1px solid var(--stroke);background:#fff;color:var(--text)}
+  :root[data-theme="dark"] .search input{background:#0c1322;color:#e8ecf8}
 
   /* List */
   .list{display:grid;gap:10px;padding:12px}
   .card{background:var(--card);border:1px solid var(--stroke);border-radius:14px;padding:12px;box-shadow:var(--shadow)}
   .name{font-weight:650}
   .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
-  .pill{font-size:11px;border:1px solid var(--stroke);border-radius:999px;padding:3px 8px;color:#cfe0ff}
+  .pill{font-size:11px;border:1px solid var(--stroke);border-radius:999px;padding:3px 8px}
   .pill.day-thu{border-color:var(--thu)} .pill.day-fri{border-color:var(--fri)}
   .pill.day-sat{border-color:var(--sat)} .pill.day-sun{border-color:var(--sun)}
   .note{color:var(--muted);font-size:12px;margin-top:6px}
   .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-  .btn{background:#142036;border:1px solid var(--stroke);color:#e8ecf8;border-radius:12px;padding:10px 12px;font-size:13px}
-  .btn.primary{background:var(--accent);border-color:var(--accent)}
+  .btn{background:#eef2ff;border:1px solid #dbe1fb;color:#0f172a;border-radius:12px;padding:10px 12px;font-size:13px}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
   .btn.warn{background:var(--warn);border-color:var(--warn);color:#0b0e14}
   .btn.good{background:var(--good);border-color:var(--good);color:#0b0e14}
+  :root[data-theme="dark"] .btn{background:#142036;border-color:var(--stroke);color:#e8ecf8}
 
   /* Add */
   .field{display:grid;gap:6px;margin-bottom:10px}
   .field label{font-size:12px;color:var(--muted)}
-  .field input,.field select,.field textarea{padding:12px;border-radius:12px;border:1px solid var(--stroke);background:#0c1322;color:#e8ecf8}
+  .field input,.field select,.field textarea{padding:12px;border-radius:12px;border:1px solid var(--stroke);background:#fff;color:var(--text)}
+  :root[data-theme="dark"] .field input,
+  :root[data-theme="dark"] .field select,
+  :root[data-theme="dark"] .field textarea{background:#0c1322;color:#e8ecf8}
   .chips{display:flex;gap:8px;overflow:auto;padding:2px 0}
-  .chip{white-space:nowrap;background:#0f192d;border:1px solid var(--stroke);padding:8px 12px;border-radius:999px;font-size:12px}
-  .inline{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{white-space:nowrap;background:var(--chip);border:1px solid var(--stroke);padding:8px 12px;border-radius:999px;font-size:12px}
 
   /* Map */
-  #map{width:100%;height:calc(100vh - 160px)} /* fill space above tabs */
-  .legend{position:absolute;top:10px;right:10px;z-index:1000;background:#0f1628cc;border:1px solid var(--stroke);
-    border-radius:10px;padding:8px 10px;font-size:12px}
+  #map{width:100%; height: calc(100vh - 64px - 64px); } /* viewport minus header & tabs */
+  .legend{position:absolute;top:10px;right:10px;z-index:900;background:color-mix(in srgb,var(--panel) 92%, transparent);
+    border:1px solid var(--stroke);border-radius:10px;padding:8px 10px;font-size:12px}
   .legend .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
-  .hotel-marker .hotel-icon{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--hotel);
-    color:#fff;border:2px solid #fff2;box-shadow:0 4px 12px rgba(0,0,0,.4);font-weight:800}
-  .toast{position:fixed;left:12px;right:12px;bottom:70px;background:#0f1628;border:1px solid var(--stroke);padding:10px 12px;border-radius:10px;
-    display:none;z-index:999}
+  .hotel-marker .hotel-icon{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;
+    background:var(--hotel);color:#fff;border:2px solid #fff2;box-shadow:0 4px 12px rgba(0,0,0,.25);font-weight:800}
+
+  /* Toast */
+  .toast{position:fixed;left:12px;right:12px;bottom:86px;background:var(--panel);border:1px solid var(--stroke);
+    padding:10px 12px;border-radius:10px;display:none;z-index:1100}
 </style>
+<script>
+  // Apply stored theme before paint (to avoid flicker)
+  (function(){
+    try{
+      const t = localStorage.getItem('tp_theme');
+      if (t === 'dark') document.documentElement.dataset.theme = 'dark';
+      else document.documentElement.dataset.theme = 'light';
+    }catch(e){}
+  })();
+</script>
 </head>
 <body>
-<div id="app">
-  <header>
-    <div>
-      <div class="brand">Trip Planner</div>
-      <div class="sub">Mobile • Realtime</div>
-    </div>
-    <div class="row">
-      <button id="btnTheme" class="btn">Theme</button>
-    </div>
-  </header>
+<header>
+  <div>
+    <div class="brand">Trip Planner</div>
+    <div class="sub">Mobile • Realtime</div>
+  </div>
+  <div class="row">
+    <button id="btnTheme" class="btn" type="button">Theme</button>
+  </div>
+</header>
 
+<div id="app">
   <!-- LIST -->
-  <section id="screen-list" class="screen active">
+  <section id="screen-list" class="screen">
     <div class="pad">
       <div class="field search">
-        <label style="display:none">Search</label>
         <input id="search" placeholder="Search places…"/>
       </div>
       <div class="field">
@@ -100,12 +139,12 @@
       <div class="field">
         <label>Route endpoints</label>
         <div class="row" style="gap:8px">
-          <select id="routeStart" class="field-input" style="flex:1"><option value="">Start…</option></select>
-          <select id="routeEnd" class="field-input" style="flex:1"><option value="">End…</option></select>
+          <select id="routeStart" style="flex:1"><option value="">Start…</option></select>
+          <select id="routeEnd" style="flex:1"><option value="">End…</option></select>
         </div>
-        <div class="inline">
-          <button id="btnBuildRoute" class="btn primary">Build route</button>
-          <button id="btnClearRoute" class="btn">Clear</button>
+        <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:8px">
+          <button id="btnBuildRoute" class="btn primary" type="button">Build route</button>
+          <button id="btnClearRoute" class="btn" type="button">Clear</button>
         </div>
         <div id="routeSummary" style="color:var(--muted);font-size:12px;margin-top:6px">Pick start & end</div>
       </div>
@@ -120,7 +159,8 @@
       <div class="field">
         <label>Day</label>
         <select id="fDay">
-          <option value="thu">Thu</option><option value="fri">Fri</option><option value="sat">Sat</option><option value="sun">Sun</option>
+          <option value="thu">Thu</option><option value="fri">Fri</option>
+          <option value="sat">Sat</option><option value="sun">Sun</option>
         </select>
       </div>
       <div class="field"><label>Info URL</label><input id="fUrl" placeholder="https://…"/></div>
@@ -130,32 +170,32 @@
       <div class="field">
         <label>Location (choose one)</label>
         <input id="fLocation" placeholder="Paste Google Maps link or `41.9,12.49`"/>
-        <div class="inline">
-          <button id="btnPickOnMap" class="btn">Pick on map</button>
-          <button id="btnUseMyLoc" class="btn">Use my location</button>
-          <button id="btnSetHotelHere" class="btn good" title="If location is set, use it for hotel">Set as hotel</button>
+        <div class="row" style="gap:8px;flex-wrap:wrap">
+          <button id="btnPickOnMap" class="btn" type="button">Pick on map</button>
+          <button id="btnUseMyLoc" class="btn" type="button">Use my location</button>
+          <button id="btnSetHotelHere" class="btn good" type="button">Set as hotel</button>
         </div>
         <small id="locHint" style="color:var(--muted)"></small>
       </div>
 
-      <div class="inline">
-        <button id="btnSavePlace" class="btn primary">Save place</button>
-        <button id="btnResetAdd" class="btn">Reset</button>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <button id="btnSavePlace" class="btn primary" type="button">Save place</button>
+        <button id="btnResetAdd" class="btn" type="button">Reset</button>
       </div>
 
       <div class="field">
         <label>Hotel</label>
-        <div class="inline">
-          <button id="btnUseMapForHotel" class="btn">Pick hotel on map</button>
-          <button id="btnUseMyLocHotel" class="btn">Use my location</button>
+        <div class="row" style="gap:8px;flex-wrap:wrap">
+          <button id="btnUseMapForHotel" class="btn" type="button">Pick hotel on map</button>
+          <button id="btnUseMyLocHotel" class="btn" type="button">Use my location</button>
         </div>
         <div id="hotelSummary" style="color:var(--muted);font-size:12px;margin-top:6px">Loading hotel…</div>
       </div>
     </div>
   </section>
 
-  <!-- MAP -->
-  <section id="screen-map" class="screen">
+  <!-- MAP (default active) -->
+  <section id="screen-map" class="screen active">
     <div style="position:relative">
       <div id="map"></div>
       <div class="legend">
@@ -169,29 +209,27 @@
       </div>
     </div>
   </section>
-
-  <!-- bottom tabs -->
-  <nav class="tabs">
-    <button data-tab="list" aria-selected="true">List</button>
-    <button data-tab="add">Add</button>
-    <button data-tab="map">Map</button>
-  </nav>
 </div>
+
+<!-- Bottom tabs: List | Map (center) | Add -->
+<nav class="tabs">
+  <button data-tab="list" aria-selected="false" type="button">List</button>
+  <button data-tab="map" aria-selected="true"  type="button">Map</button>
+  <button data-tab="add"  aria-selected="false" type="button">Add</button>
+</nav>
 
 <div id="toast" class="toast"></div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
 <script type="module">
 /*** CONFIG: Supabase ***/
-const SUPABASE_URL = "https://YOURPROJECT.supabase.co";
-const SUPABASE_ANON_KEY = "YOUR_PUBLIC_ANON_KEY";
-
+const SUPABASE_URL = "https://rnevncitwljuofdtbmsl.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJuZXZuY2l0d2xqdW9mZHRibXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1MTQxNDksImV4cCI6MjA3NjA5MDE0OX0.WeN9Wli28Z_RIz4J8b10joSeBp6F6HK8ea2d3fAi-XQ";
+/*** seed defaults on first run if table is empty ***/
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-/*** Minimal state ***/
+/*** Basic state & elements ***/
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-window.supabase = supabase; // handy for console
-
 const state = {
   places: [],
   hotel: { title: 'Hotel Base', address: 'Via Andrea Doria 79, Rome', lat: 41.91029, lng: 12.45436 },
@@ -202,74 +240,54 @@ const state = {
   pickMode: false,
 };
 
-const els = {
-  screens: {
-    list: document.getElementById('screen-list'),
-    add: document.getElementById('screen-add'),
-    map: document.getElementById('screen-map'),
-  },
-  tabs: document.querySelectorAll('nav.tabs button'),
-  search: document.getElementById('search'),
-  list: document.getElementById('list'),
-  dayChecks: Array.from(document.querySelectorAll('.chips input')),
-  routeStart: document.getElementById('routeStart'),
-  routeEnd: document.getElementById('routeEnd'),
-  build: document.getElementById('btnBuildRoute'),
-  clear: document.getElementById('btnClearRoute'),
-  routeSummary: document.getElementById('routeSummary'),
-  theme: document.getElementById('btnTheme'),
-  // add
-  fTitle: document.getElementById('fTitle'),
-  fDay: document.getElementById('fDay'),
-  fUrl: document.getElementById('fUrl'),
-  fTags: document.getElementById('fTags'),
-  fNote: document.getElementById('fNote'),
-  fLocation: document.getElementById('fLocation'),
-  locHint: document.getElementById('locHint'),
-  btnPickOnMap: document.getElementById('btnPickOnMap'),
-  btnUseMyLoc: document.getElementById('btnUseMyLoc'),
-  btnSetHotelHere: document.getElementById('btnSetHotelHere'),
-  btnSavePlace: document.getElementById('btnSavePlace'),
-  btnResetAdd: document.getElementById('btnResetAdd'),
-  btnUseMapForHotel: document.getElementById('btnUseMapForHotel'),
-  btnUseMyLocHotel: document.getElementById('btnUseMyLocHotel'),
-  hotelSummary: document.getElementById('hotelSummary'),
-  // misc
-  toast: document.getElementById('toast'),
+const screens = {
+  list: document.getElementById('screen-list'),
+  add:  document.getElementById('screen-add'),
+  map:  document.getElementById('screen-map'),
 };
+const tabBtns = document.querySelectorAll('nav.tabs button');
+const toastEl = document.getElementById('toast');
+function toast(m){ toastEl.textContent=m; toastEl.style.display='block'; setTimeout(()=> toastEl.style.display='none', 1400) }
 
-/*** Tabs ***/
-els.tabs.forEach(b=>{
+/*** Theme toggle (fixed) ***/
+document.getElementById('btnTheme').addEventListener('click', ()=>{
+  const cur = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem('tp_theme', next); } catch(e){}
+  // Leaflet needs a resize after visual changes
+  setTimeout(()=> map.invalidateSize(), 100);
+});
+
+/*** Tabs: default Map active, Map button is middle ***/
+tabBtns.forEach(b=>{
   b.addEventListener('click', ()=>{
-    els.tabs.forEach(x=>x.setAttribute('aria-selected','false'));
+    tabBtns.forEach(x=>x.setAttribute('aria-selected','false'));
     b.setAttribute('aria-selected','true');
     const tab = b.dataset.tab;
-    for (const [k, el] of Object.entries(els.screens)) el.classList.toggle('active', k===tab);
-    if (tab==='map') setTimeout(()=> map.invalidateSize(), 150);
+    Object.entries(screens).forEach(([k,el])=> el.classList.toggle('active', k===tab));
+    if (tab==='map') setTimeout(()=> map.invalidateSize(), 100);
   });
 });
 
 /*** Map ***/
-const map = L.map('map', { scrollWheelZoom: true, tapHold: true }).setView([41.9028, 12.4964], 13);
+const map = L.map('map', { scrollWheelZoom:true }).setView([41.9028,12.4964], 13);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-  maxZoom: 20, subdomains: 'abcd', attribution: '&copy; OpenStreetMap & CARTO'
+  maxZoom:20, subdomains:'abcd', attribution:'&copy; OpenStreetMap & CARTO'
 }).addTo(map);
-
 let hotelMarker = null;
 function drawHotelMarker(){
   if (hotelMarker) map.removeLayer(hotelMarker);
-  const icon = L.divIcon({ className: 'hotel-marker', html: '<span class="hotel-icon">H</span>', iconSize:[26,26], iconAnchor:[13,13] });
+  const icon = L.divIcon({ className:'hotel-marker', html:'<span class="hotel-icon">H</span>', iconSize:[26,26], iconAnchor:[13,13] });
   hotelMarker = L.marker([state.hotel.lat, state.hotel.lng], { icon }).addTo(map)
     .bindPopup(`<b>${state.hotel.title || 'Hotel'}</b><br>${state.hotel.address||''}`);
 }
 
-/*** Helpers ***/
-const DAY_COLORS = { thu: getCss('--thu'), fri: getCss('--fri'), sat: getCss('--sat'), sun: getCss('--sun') };
+/*** Utilities ***/
+const DAY_COLORS = { thu:getCss('--thu'), fri:getCss('--fri'), sat:getCss('--sat'), sun:getCss('--sun') };
 function getCss(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
 function dayColor(d){ return DAY_COLORS[d] || DAY_COLORS.thu }
 function uid(){ return Math.random().toString(36).slice(2,10) }
-function toast(m){ els.toast.textContent=m; els.toast.style.display='block'; setTimeout(()=> els.toast.style.display='none', 1400) }
-function visibleDays(){ return new Set(els.dayChecks.filter(c=>c.checked).map(c=>c.dataset.day)); }
 function parseLatLng(text){
   if (!text) return null;
   let m = /@(-?\d+(\.\d+)?),\s*(-?\d+(\.\d+)?)/.exec(text); if (m) return [parseFloat(m[1]), parseFloat(m[3])];
@@ -283,22 +301,17 @@ function parseLatLng(text){
 function normalizePlace(r){ return { id:r.id, title:r.title, day:r.day, url:r.url||'', tags:Array.isArray(r.tags)?r.tags:(r.tags||[]), note:r.note||'', lat:+r.lat, lng:+r.lng, visited:!!r.visited } }
 async function loadPlaces(){ const { data, error } = await supabase.from('places').select('*').order('created_at',{ascending:true}); if (error) throw error; return (data||[]).map(normalizePlace) }
 async function insertPlace(p){ const { error } = await supabase.from('places').insert(p); if (error) throw error }
-async function updatePlace(p){ const { error } = await supabase.from('places').update(p).eq('id', p.id); if (error) throw error }
-async function deletePlace(id){ const { error } = await supabase.from('places').delete().eq('id', id); if (error) throw error }
+async function updatePlace(p){ const { error } = await supabase.from('places').update(p).eq('id',p.id); if (error) throw error }
+async function deletePlace(id){ const { error } = await supabase.from('places').delete().eq('id',id); if (error) throw error }
 async function setVisited(id,v){ const { error } = await supabase.from('places').update({ visited: !!v }).eq('id', id); if (error) throw error }
-
 async function loadHotel(){
   const { data, error } = await supabase.from('app_settings').select('v').eq('k','hotel').single();
   if (!error && data?.v) return data.v;
-  // seed default if none
-  const def = state.hotel;
-  await supabase.from('app_settings').upsert({ k:'hotel', v: def });
-  return def;
+  // seed default
+  await supabase.from('app_settings').upsert({ k:'hotel', v: state.hotel });
+  return state.hotel;
 }
-async function saveHotel(v){
-  const { error } = await supabase.from('app_settings').upsert({ k:'hotel', v, updated_at: new Date().toISOString() });
-  if (error) throw error;
-}
+async function saveHotel(v){ const { error } = await supabase.from('app_settings').upsert({ k:'hotel', v, updated_at: new Date().toISOString() }); if(error) throw error }
 
 /*** Realtime ***/
 supabase.channel('rt:places')
@@ -315,22 +328,26 @@ supabase.channel('rt:places')
       const id = rowOld?.id;
       state.places = state.places.filter(x=>x.id!==id);
     }
-    renderList(); renderMarkers(); if(state.routeLine) rebuildRoute();
+    renderList(); renderMarkers();
   })
   .subscribe();
 
 supabase.channel('rt:settings')
   .on('postgres_changes', { event:'*', schema:'public', table:'app_settings' }, payload=>{
     if (payload.new?.k==='hotel' && payload.new?.v){
-      state.hotel = payload.new.v;
-      drawHotelMarker();
-      updateHotelSummary();
+      state.hotel = payload.new.v; drawHotelMarker(); updateHotelSummary();
     }
   })
   .subscribe();
 
 /*** List & markers ***/
+const listEl = document.getElementById('list');
+const searchEl = document.getElementById('search');
+const dayChecks = Array.from(document.querySelectorAll('.chips input'));
 const markers = new Map();
+
+function visibleDays(){ return new Set(dayChecks.filter(c=>c.checked).map(c=>c.dataset.day)); }
+
 function renderMarkers(){
   for (const m of markers.values()) map.removeLayer(m);
   markers.clear();
@@ -348,9 +365,9 @@ function renderMarkers(){
 }
 
 function renderList(){
-  const q = (els.search.value||'').toLowerCase().trim();
+  const q = (searchEl.value||'').toLowerCase().trim();
   const vis = visibleDays();
-  els.list.innerHTML = '';
+  listEl.innerHTML = '';
   const days = ['thu','fri','sat','sun'];
   for (const d of days){
     const group = state.places.filter(p => p.day===d && (!q || p.title.toLowerCase().includes(q)) && vis.has(d));
@@ -369,29 +386,34 @@ function renderList(){
           <button class="btn" data-act="visit">${p.visited?'Unvisit':'Visited'}</button>
           <button class="btn warn" data-act="del">Delete</button>
         </div>`;
-      card.querySelector('[data-act="zoom"]').onclick = ()=>{ const m=markers.get(p.id); if(m){ map.setView(m.getLatLng(),16); m.openPopup(); els.tabs[2].click(); } };
-      card.querySelector('[data-act="route"]').onclick = ()=>{ if(state.routeSelection.has(p.id)) state.routeSelection.delete(p.id); else state.routeSelection.add(p.id); toast(state.routeSelection.has(p.id)?'Included in route':'Removed from route'); };
+      card.querySelector('[data-act="zoom"]').onclick = ()=>{ const m=markers.get(p.id); if(m){ map.setView(m.getLatLng(),16); m.openPopup(); document.querySelector('nav.tabs button[data-tab="map"]').click(); } };
+      card.querySelector('[data-act="route"]').onclick = ()=>{ if(state.routeSelection.has(p.id)) state.routeSelection.delete(p.id); else state.routeSelection.add(p.id); toast(state.routeSelection.has(p.id)?'Included':'Removed'); };
       card.querySelector('[data-act="visit"]').onclick = async ()=>{ try{ await setVisited(p.id, !p.visited); }catch{ toast('Failed'); } };
       card.querySelector('[data-act="del"]').onclick = async ()=>{ if(confirm('Delete?')){ try{ await deletePlace(p.id); toast('Deleted'); }catch{ toast('Failed'); } } };
-      els.list.appendChild(card);
+      listEl.appendChild(card);
     }
   }
 }
 
-/*** Route (same approach, simplified) ***/
+/*** Route (unchanged behavior) ***/
+const routeStart = document.getElementById('routeStart');
+const routeEnd = document.getElementById('routeEnd');
+const routeSummary = document.getElementById('routeSummary');
+document.getElementById('btnBuildRoute').addEventListener('click', buildRoute);
+document.getElementById('btnClearRoute').addEventListener('click', clearRoute);
+[routeStart,routeEnd].forEach(s=> s.addEventListener('change', ()=> state.routeLine ? buildRoute() : null));
+
 function find(id){ if(id==='hotel') return state.hotel; return state.places.find(p=>p.id===id) }
 function distanceKm(a,b){ const R=6371, dLat=(b.lat-a.lat)*Math.PI/180, dLng=(b.lng-a.lng)*Math.PI/180, lat1=a.lat*Math.PI/180, lat2=b.lat*Math.PI/180; const sL=Math.sin(dLat/2), sG=Math.sin(dLng/2); const h=sL*sL+Math.cos(lat1)*Math.cos(lat2)*sG*sG; return 2*R*Math.atan2(Math.sqrt(h),Math.sqrt(1-h)) }
 function computeRoute(startId,endId,mids){ const route=[startId]; let cur=startId; const rem=new Set(mids); while(rem.size){ const a=find(cur); if(!a) break; let best=null,bestD=Infinity; for(const id of rem){ const b=find(id); if(!b) continue; const d=distanceKm(a,b); if(d<bestD){bestD=d;best=id} } if(!best) break; route.push(best); rem.delete(best); cur=best; } if(route[route.length-1]!==endId) route.push(endId); return route; }
 function approxDistanceKm(geometry){ let tot=0; for(let i=1;i<geometry.length;i++){ const a={lat:geometry[i-1][0],lng:geometry[i-1][1]}, b={lat:geometry[i][0],lng:geometry[i][1]}; tot+=distanceKm(a,b) } return tot; }
-
 async function buildRoute(){
-  const s = els.routeStart.value, e = els.routeEnd.value;
+  const s = routeStart.value, e = routeEnd.value;
   if(!s || !e){ toast('Pick start & end'); return }
   const mids = Array.from(state.routeSelection).filter(x=>x!==s && x!==e && find(x));
   const order = computeRoute(s, e, mids);
   const coords = order.map(id=>{ const p=find(id); return p?[p.lat,p.lng]:null }).filter(Boolean);
   if(coords.length<2){ toast('Need 2+ points'); return }
-  // try OSRM
   let geometry = coords, distanceMeters = 0, fallback = false;
   try{
     const qs = coords.map(([lat,lng])=>`${lng.toFixed(6)},${lat.toFixed(6)}`).join(';');
@@ -402,134 +424,125 @@ async function buildRoute(){
     if(g?.length>1){ geometry=g; distanceMeters = data.routes[0].distance||0; }
   }catch{ fallback=true }
   if(state.routeLine) map.removeLayer(state.routeLine);
-  state.routeLine = L.polyline(geometry, { color: getCss('--sun')||'#ff6a8a', weight:4, opacity:.9 }).addTo(map);
+  state.routeLine = L.polyline(geometry, { color:getCss('--sun')||'#ff6a8a', weight:4, opacity:.9 }).addTo(map);
   map.fitBounds(state.routeLine.getBounds().pad(0.12));
   state.currentRoute = new Set(order);
   const km = (distanceMeters ? distanceMeters/1000 : approxDistanceKm(geometry)).toFixed(1);
-  els.routeSummary.textContent = `${order.length} stops · ${km} km${fallback?' (approx.)':''}`;
+  routeSummary.textContent = `${order.length} stops · ${km} km${fallback?' (approx.)':''}`;
+}
+function clearRoute(){ if(state.routeLine){ map.removeLayer(state.routeLine); state.routeLine=null; state.currentRoute=null; } routeSummary.textContent='Pick start & end' }
+
+function updateRouteOptions(){
+  const keepS = routeStart.value, keepE = routeEnd.value;
+  const fill = sel => {
+    sel.innerHTML = '<option value="">(Pick)</option>';
+    const optH = document.createElement('option'); optH.value='hotel'; optH.textContent='Hotel'; sel.appendChild(optH);
+    for (const p of state.places){ const o=document.createElement('option'); o.value=p.id; o.textContent=p.title; sel.appendChild(o); }
+  };
+  fill(routeStart); fill(routeEnd);
+  routeStart.value = keepS || 'hotel';
+  routeEnd.value   = keepE || '';
 }
 
-function clearRoute(){
-  if(state.routeLine){ map.removeLayer(state.routeLine); state.routeLine=null; state.currentRoute=null; }
-  els.routeSummary.textContent = 'Pick start & end';
-}
+/*** Add screen (no lat/lng fields) ***/
+const fTitle = document.getElementById('fTitle');
+const fDay = document.getElementById('fDay');
+const fUrl = document.getElementById('fUrl');
+const fTags = document.getElementById('fTags');
+const fNote = document.getElementById('fNote');
+const fLocation = document.getElementById('fLocation');
+const locHint = document.getElementById('locHint');
 
-/*** Add screen actions (no lat/lng fields) ***/
-els.btnPickOnMap.addEventListener('click', ()=>{
-  state.pickMode = true; toast('Tap on map to set location');
-  // switch to map tab for convenience
-  document.querySelector('nav.tabs button[data-tab="map"]').click();
+document.getElementById('btnPickOnMap').addEventListener('click', ()=>{
+  state.pickMode = true; toast('Tap on map to set location'); document.querySelector('nav.tabs button[data-tab="map"]').click();
 });
 map.on('click', (e)=>{
   if(!state.pickMode) return;
   const { lat, lng } = e.latlng;
   state.pickedLatLng = [lat,lng];
-  els.fLocation.value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-  els.locHint.textContent = 'Location set from map.';
+  fLocation.value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+  locHint.textContent = 'Location set from map.';
   state.pickMode = false;
   toast('Location set');
 });
-map.on('contextmenu', async (e)=>{ // long-press on mobile triggers contextmenu
-  const { lat, lng } = e.latlng;
-  const v = { ...state.hotel, lat, lng };
+map.on('contextmenu', async (e)=>{ // long-press sets hotel
+  const v = { ...state.hotel, lat: e.latlng.lat, lng: e.latlng.lng };
   try{ await saveHotel(v); toast('Hotel updated'); }catch{ toast('Failed to save hotel') }
 });
 
-els.btnUseMyLoc.addEventListener('click', ()=>{
+document.getElementById('btnUseMyLoc').addEventListener('click', ()=>{
   if(!navigator.geolocation){ toast('Geolocation not available'); return }
   navigator.geolocation.getCurrentPosition(pos=>{
     const { latitude, longitude } = pos.coords;
     state.pickedLatLng = [latitude, longitude];
-    els.fLocation.value = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
-    els.locHint.textContent = 'Location set from device.';
+    fLocation.value = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+    locHint.textContent = 'Location set from device.';
   }, ()=> toast('Location failed'), { enableHighAccuracy:true, timeout:7000 });
 });
 
-els.btnSetHotelHere.addEventListener('click', async ()=>{
-  const parsed = parseLatLng(els.fLocation.value.trim());
+document.getElementById('btnSetHotelHere').addEventListener('click', async ()=>{
+  const parsed = parseLatLng(fLocation.value.trim());
   if(!parsed){ toast('Set a location first'); return }
   const [lat,lng] = parsed;
-  const v = { title: state.hotel.title || 'Hotel', address: state.hotel.address||'', lat, lng };
-  try{ await saveHotel(v); toast('Hotel updated'); }catch{ toast('Failed to save hotel') }
+  try{ await saveHotel({ ...state.hotel, lat, lng }); toast('Hotel updated'); }catch{ toast('Failed to save hotel') }
 });
 
-els.btnUseMapForHotel.addEventListener('click', ()=>{ state.pickMode = true; toast('Long-press map to set hotel'); document.querySelector('nav.tabs button[data-tab="map"]').click(); });
-els.btnUseMyLocHotel.addEventListener('click', ()=>{
+document.getElementById('btnUseMapForHotel').addEventListener('click', ()=>{
+  state.pickMode = true; toast('Long-press map to set hotel'); document.querySelector('nav.tabs button[data-tab="map"]').click();
+});
+document.getElementById('btnUseMyLocHotel').addEventListener('click', ()=>{
   if(!navigator.geolocation){ toast('Geolocation not available'); return }
   navigator.geolocation.getCurrentPosition(async pos=>{
-    const v = { ...state.hotel, lat: pos.coords.latitude, lng: pos.coords.longitude };
-    try{ await saveHotel(v); toast('Hotel updated'); }catch{ toast('Failed to save hotel') }
+    try{ await saveHotel({ ...state.hotel, lat: pos.coords.latitude, lng: pos.coords.longitude }); toast('Hotel updated'); }catch{ toast('Failed to save hotel') }
   }, ()=> toast('Location failed'), { enableHighAccuracy:true, timeout:7000 });
 });
 
-els.btnSavePlace.addEventListener('click', async ()=>{
-  const title = els.fTitle.value.trim(); if(!title){ toast('Title required'); return }
+document.getElementById('btnSavePlace').addEventListener('click', async ()=>{
+  const title = fTitle.value.trim(); if(!title){ toast('Title required'); return }
   let latlng = state.pickedLatLng;
-  if(!latlng && els.fLocation.value){ const parsed = parseLatLng(els.fLocation.value.trim()); if(parsed) latlng = parsed; }
+  if(!latlng && fLocation.value){ const parsed = parseLatLng(fLocation.value.trim()); if(parsed) latlng = parsed; }
   if(!latlng){ toast('Pick a location (paste link, pick on map, or use my location)'); return }
   const [lat,lng] = latlng;
   const payload = {
     id: uid(),
     title,
-    day: els.fDay.value,
-    url: els.fUrl.value.trim() || null,
-    tags: els.fTags.value.split(',').map(s=>s.trim()).filter(Boolean),
-    note: els.fNote.value.trim() || null,
+    day: fDay.value,
+    url: fUrl.value.trim() || null,
+    tags: fTags.value.split(',').map(s=>s.trim()).filter(Boolean),
+    note: fNote.value.trim() || null,
     lat, lng,
     visited: false
   };
   try{ await insertPlace(payload); toast('Saved'); resetAdd(); document.querySelector('nav.tabs button[data-tab="list"]').click(); }
   catch{ toast('Save failed') }
 });
-els.btnResetAdd.addEventListener('click', resetAdd);
-function resetAdd(){
-  els.fTitle.value=''; els.fDay.value='thu'; els.fUrl.value=''; els.fTags.value=''; els.fNote.value='';
-  els.fLocation.value=''; els.locHint.textContent=''; state.pickedLatLng=null; state.pickMode=false;
-}
+document.getElementById('btnResetAdd').addEventListener('click', resetAdd);
+function resetAdd(){ fTitle.value=''; fDay.value='thu'; fUrl.value=''; fTags.value=''; fNote.value=''; fLocation.value=''; locHint.textContent=''; state.pickedLatLng=null; state.pickMode=false; }
 
-/*** Theme & route events ***/
-els.theme.addEventListener('click', ()=>{ const d=document.documentElement.dataset.theme; document.documentElement.dataset.theme = d ? '' : 'dark'; setTimeout(()=>map.invalidateSize(),100) });
-els.search.addEventListener('input', ()=> renderList());
-els.dayChecks.forEach(c=> c.addEventListener('change', ()=>{ renderList(); renderMarkers(); }));
-els.build.addEventListener('click', buildRoute);
-els.clear.addEventListener('click', clearRoute);
-[els.routeStart, els.routeEnd].forEach(s=> s.addEventListener('change', ()=> state.routeLine ? buildRoute() : null));
-
-function updateRouteOptions(){
-  const keepS = els.routeStart.value, keepE = els.routeEnd.value;
-  function fill(sel){
-    sel.innerHTML = '<option value="">Start…</option>';
-    const optH = document.createElement('option'); optH.value='hotel'; optH.textContent='Hotel'; sel.appendChild(optH);
-    for (const p of state.places){ const o=document.createElement('option'); o.value=p.id; o.textContent=p.title; sel.appendChild(o); }
-  }
-  fill(els.routeStart); els.routeStart.value = keepS || 'hotel';
-  els.routeEnd.innerHTML = '<option value="">End…</option>';
-  const optH2 = document.createElement('option'); optH2.value='hotel'; optH2.textContent='Hotel'; els.routeEnd.appendChild(optH2);
-  for (const p of state.places){ const o=document.createElement('option'); o.value=p.id; o.textContent=p.title; els.routeEnd.appendChild(o); }
-  els.routeEnd.value = keepE || '';
-}
+/*** Search/filters ***/
+searchEl.addEventListener('input', renderList);
+dayChecks.forEach(c=> c.addEventListener('change', ()=>{ renderList(); renderMarkers(); }));
 
 /*** Hotel summary ***/
 function updateHotelSummary(){
-  els.hotelSummary.textContent = `${state.hotel.title || 'Hotel'} — ${state.hotel.address || ''} • ${state.hotel.lat.toFixed(5)}, ${state.hotel.lng.toFixed(5)}`;
+  document.getElementById('hotelSummary').textContent =
+    `${state.hotel.title || 'Hotel'} — ${state.hotel.address || ''} • ${state.hotel.lat.toFixed(5)}, ${state.hotel.lng.toFixed(5)}`;
   drawHotelMarker();
 }
 
-/*** Boot ***/
+/*** Boot (default Map open) ***/
 (async function boot(){
-  try{
-    state.hotel = await loadHotel();
-    updateHotelSummary();
-  }catch{ /* fall back to default already in state */ updateHotelSummary(); }
+  try { state.hotel = await loadHotel(); } catch(e){}
+  updateHotelSummary();
 
-  try{
-    state.places = await loadPlaces();
-  }catch{ /* ignore for now */ }
-
+  try { state.places = await loadPlaces(); } catch(e){}
   updateRouteOptions();
-  renderList();
-  renderMarkers();
-  // initial map fit
+  renderList(); renderMarkers();
+
+  // Ensure default selected tab is Map (middle)
+  document.querySelector('nav.tabs button[data-tab="map"]').click();
+
+  // initial fit
   setTimeout(()=>{
     const all = [...markers.values()];
     if (hotelMarker) all.push(hotelMarker);
@@ -537,7 +550,7 @@ function updateHotelSummary(){
       const g = L.featureGroup(all);
       map.fitBounds(g.getBounds().pad(0.15));
     }
-  }, 200);
+  }, 250);
 })();
 </script>
 </body>
